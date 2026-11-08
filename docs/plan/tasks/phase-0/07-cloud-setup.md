@@ -2,8 +2,8 @@
 id: P0-07
 title: "Cloud setup: GitHub, Supabase, Vercel"
 phase: 0
-status: planned
-started:
+status: in-progress
+started: 2026-11-08
 completed:
 commits: []
 ---
@@ -14,8 +14,8 @@ commits: []
 The repo is on GitHub (`sanchaichie/opshub`), linked to a Supabase cloud project and a Vercel project, with every secret in place, so CI, migration deploys and the keep-alive all run for real.
 
 ## Acceptance criteria
-- [ ] GitHub repo `sanchaichie/opshub` created; first push; CI green
-- [ ] GitHub environment `production` with the owner as required reviewer
+- [x] GitHub repo `sanchaichie/opshub` created (public); first push; CI green
+- [x] GitHub environment `production` with the owner as required reviewer, `main` only
 - [ ] GitHub secrets:
   - `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF` (migrations)
   - `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (keep-alive)

@@ -37,7 +37,7 @@ A running Nuxt + Supabase skeleton with every safety net in place **before** any
 - [x] Hook unit tests pass; dangerous commands are blocked, normal ones pass
 - [x] `pnpm db:reset` aborts when the stack is stopped or a remote DB URL is in the environment
 - [x] pgTAP passes locally
-- [ ] CI green on GitHub
+- [x] CI green on GitHub
 - [ ] `/api/health` on the Vercel deploy returns `db: ok`; the cron call records a heartbeat
 - [ ] Manually dispatching `keepalive.yml` records a `github-actions` heartbeat
 
