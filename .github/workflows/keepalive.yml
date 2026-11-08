@@ -1,0 +1,35 @@
+# Keeps the free-tier Supabase project from pausing after 7 idle days.
+# Independent of Vercel: calls the database directly. Vercel Cron hits
+# /api/health daily as a second, separate pinger. See docs/decisions/0006.
+name: Keep-alive
+
+on:
+  schedule:
+    - cron: '17 6 */2 * *' # every 2 days
+  workflow_dispatch:
+
+permissions:
+  actions: write # to keep this scheduled workflow from being auto-disabled
+  contents: read
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record heartbeat
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            -X POST "$SUPABASE_URL/rest/v1/rpc/heartbeat" \
+            -H "apikey: $SUPABASE_SECRET_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"pinger":"github-actions"}'
+
+      # GitHub disables scheduled workflows after 60 days without repo
+      # activity. Re-enabling through the API resets that timer.
+      - name: Keep this workflow enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/keepalive.yml/enable"

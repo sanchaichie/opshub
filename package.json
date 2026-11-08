@@ -1,0 +1,48 @@
+{
+  "name": "opshub",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest",
+    "db:start": "supabase start",
+    "db:reset": "bash scripts/db-reset-local.sh",
+    "db:test": "supabase test db",
+    "db:types": "supabase gen types typescript --local > shared/types/database.types.ts"
+  },
+  "dependencies": {
+    "@nuxt/ui": "^4.12.0",
+    "@nuxtjs/supabase": "^2.1.0",
+    "@supabase/supabase-js": "^2.119.0",
+    "h3": "^1.15.11",
+    "nuxt": "^4.6.4",
+    "tailwindcss": "^4.3.5",
+    "vue": "^3.5.44",
+    "vue-router": "^5.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.17.0",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.14.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0",
+    "vue-tsc": "^3.3.14"
+  },
+  "packageManager": "pnpm@10.26.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "vue-demi"
+    ]
+  }
+}
