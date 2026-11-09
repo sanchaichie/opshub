@@ -6,7 +6,7 @@ import { errorMessage, PermanentError } from '../../lib/errors'
 import { recordSyncCall } from '../../lib/event-log'
 import type { ActionContext, ActionResult, RawWebhook, VerifiedWebhook } from '../types'
 import { stripeRequest } from './api'
-import { chargeSchema, paymentIntentSchema, parseLineItems, stripeEventSchema, type PaymentIntent } from './schemas'
+import { chargeSchema, paymentIntentSchema, parseLineItems, stripeEventSchema, toShippingAddress, type PaymentIntent } from './schemas'
 import { verifyStripeSignature } from './signature'
 
 const UNIQUE_VIOLATION = '23505'
@@ -138,6 +138,7 @@ async function createOrder(
       amount_cents: intent.amount_received ?? intent.amount,
       currency: intent.currency.toLowerCase(),
       line_items: parseLineItems(intent.metadata.line_items),
+      shipping_address: toShippingAddress(intent.shipping),
       stripe_payment_intent_id: intent.id,
     })
     .select()

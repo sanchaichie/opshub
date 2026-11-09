@@ -22,14 +22,14 @@ export default defineEventHandler(async (event) => {
       : { key: `simulate:org:${orgId}`, max: 200, window: '1 day' },
   ], 'Simulation limit reached. Try again later.')
 
-  const { items, customer } = randomOrder()
+  const { items, customer, shipping } = randomOrder()
   const queued = await enqueue(useServiceClient(event), {
     orgId,
     provider: 'stripe',
     action: 'simulate_payment',
     // Each click is a new purchase; retries of THIS job reuse the key.
     idempotencyKey: `stripe.simulate_payment:${randomUUID()}`,
-    input: { items, customer },
+    input: { items, customer, shipping },
   })
 
   processSoon(event)

@@ -3,7 +3,7 @@ select plan(8);
 
 select results_eq(
   $$ select jobname::text collate "default", schedule::text collate "default" from cron.job order by jobname $$,
-  $$ values ('process-events'::text, '* * * * *'::text), ('purge-usage-counters', '15 3 * * *'), ('reset-demo', '0 3 * * *') $$,
+  $$ values ('detect-stuck-orders'::text, '*/5 * * * *'::text), ('process-events', '* * * * *'), ('purge-usage-counters', '15 3 * * *'), ('reset-demo', '0 3 * * *') $$,
   'the scheduled jobs exist with the expected schedules'
 );
 

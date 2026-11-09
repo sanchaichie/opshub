@@ -207,14 +207,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "amount_cents": number,"carrier": string | null,"created_at": string,"currency": string,"customer_id": string | null,"easypost_shipment_id": string | null,"hubspot_deal_id": string | null,"id": string,"line_items": NonNullable<Json>,"org_id": string,"source": Database["public"]['Enums']["order_source"],"status": Database["public"]['Enums']["order_status"],"status_changed_at": string,"stripe_payment_intent_id": string | null,"tracking_code": string | null,"updated_at": string
+                    "amount_cents": number,"carrier": string | null,"created_at": string,"currency": string,"customer_id": string | null,"easypost_shipment_id": string | null,"easypost_tracker_id": string | null,"hubspot_deal_id": string | null,"id": string,"label_url": string | null,"line_items": NonNullable<Json>,"org_id": string,"shipping_address": Json | null,"source": Database["public"]['Enums']["order_source"],"status": Database["public"]['Enums']["order_status"],"status_changed_at": string,"stripe_payment_intent_id": string | null,"tracking_code": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_cents": number,"carrier"?: string | null,"created_at"?: string,"currency": string,"customer_id"?: string | null,"easypost_shipment_id"?: string | null,"hubspot_deal_id"?: string | null,"id"?: string,"line_items"?: NonNullable<Json>,"org_id": string,"source": Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"status_changed_at"?: string,"stripe_payment_intent_id"?: string | null,"tracking_code"?: string | null,"updated_at"?: string
+                    "amount_cents": number,"carrier"?: string | null,"created_at"?: string,"currency": string,"customer_id"?: string | null,"easypost_shipment_id"?: string | null,"easypost_tracker_id"?: string | null,"hubspot_deal_id"?: string | null,"id"?: string,"label_url"?: string | null,"line_items"?: NonNullable<Json>,"org_id": string,"shipping_address"?: Json | null,"source": Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"status_changed_at"?: string,"stripe_payment_intent_id"?: string | null,"tracking_code"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "amount_cents"?: number,"carrier"?: string | null,"created_at"?: string,"currency"?: string,"customer_id"?: string | null,"easypost_shipment_id"?: string | null,"hubspot_deal_id"?: string | null,"id"?: string,"line_items"?: NonNullable<Json>,"org_id"?: string,"source"?: Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"status_changed_at"?: string,"stripe_payment_intent_id"?: string | null,"tracking_code"?: string | null,"updated_at"?: string
+                    "amount_cents"?: number,"carrier"?: string | null,"created_at"?: string,"currency"?: string,"customer_id"?: string | null,"easypost_shipment_id"?: string | null,"easypost_tracker_id"?: string | null,"hubspot_deal_id"?: string | null,"id"?: string,"label_url"?: string | null,"line_items"?: NonNullable<Json>,"org_id"?: string,"shipping_address"?: Json | null,"source"?: Database["public"]['Enums']["order_source"],"status"?: Database["public"]['Enums']["order_status"],"status_changed_at"?: string,"stripe_payment_intent_id"?: string | null,"tracking_code"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -310,10 +310,13 @@ isOneToOne: false
 "currency": string,
 "customer_id": string | null,
 "easypost_shipment_id": string | null,
+"easypost_tracker_id": string | null,
 "hubspot_deal_id": string | null,
 "id": string,
+"label_url": string | null,
 "line_items": NonNullable<Json>,
 "org_id": string,
+"shipping_address": Json | null,
 "source": Database["public"]['Enums']["order_source"],
 "status": Database["public"]['Enums']["order_status"],
 "status_changed_at": string,

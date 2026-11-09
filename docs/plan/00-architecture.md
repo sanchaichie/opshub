@@ -388,3 +388,10 @@ Changes made to this plan after approval. Each entry is dated and explains why.
   - **`organizations.is_demo` is immutable** (trigger), so no bug can turn a real org into one the nightly reset wipes.
   - **One throwaway account per demo visitor** instead of one shared demo account ([ADR 0007](../decisions/0007-per-visitor-demo-accounts.md)). Found by security-reviewer: with a shared account, any visitor's sign-out would log out everyone. There is no demo password env var anymore.
   - **Simulate limits:** the shared daily budget applies to the demo org only. Real orgs get their own per-org limit.
+- **2026-11-09: Phase 2 shipping**
+  - **Order columns:** `shipping_address` (validated jsonb), `label_url`, `easypost_tracker_id`.
+  - **Tracker webhooks match on unique ids only** (tracker id, or shipment id), never on tracking code. Found by security-reviewer: EasyPost's test tracking codes are shared across orders and orgs.
+  - **Optional `resolveOrgId` hook:** added to the `Integration` interface for providers whose payloads carry no org id.
+  - **Stuck detection:** `private.mark_stuck_orders()` runs every 5 minutes and enqueues internal `opshub`/`order.stuck` events, handled in TypeScript.
+  - **Worker fast path:** chains up to 5 batches (15s) after a webhook or user action.
+  - **Personal data in Realtime:** `orders` (published to Realtime) now carries `shipping_address`. RLS limits it to org members, and demo orders only hold generated addresses.

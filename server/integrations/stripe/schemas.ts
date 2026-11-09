@@ -32,6 +32,17 @@ export const paymentIntentSchema = z.looseObject({
   customer: z.string().nullable().optional(),
   receipt_email: z.string().nullable().optional(),
   latest_charge: z.string().nullable().optional(),
+  shipping: z.looseObject({
+    name: z.string().nullable().optional(),
+    address: z.looseObject({
+      line1: z.string().nullable().optional(),
+      line2: z.string().nullable().optional(),
+      city: z.string().nullable().optional(),
+      state: z.string().nullable().optional(),
+      postal_code: z.string().nullable().optional(),
+      country: z.string().nullable().optional(),
+    }).nullable().optional(),
+  }).nullable().optional(),
   metadata: opshubMetadataSchema.default({}),
 })
 export type PaymentIntent = z.infer<typeof paymentIntentSchema>
@@ -52,6 +63,21 @@ export const chargeSchema = z.looseObject({
     name: z.string().nullable().optional(),
   }),
 })
+
+/** Stripe's shipping → OpsHub's address shape; null unless the required parts are present. */
+export function toShippingAddress(shipping: PaymentIntent['shipping']) {
+  const a = shipping?.address
+  if (!shipping?.name || !a?.line1 || !a.city || !a.country) return null
+  return {
+    name: shipping.name,
+    street1: a.line1,
+    ...(a.line2 ? { street2: a.line2 } : {}),
+    city: a.city,
+    ...(a.state ? { state: a.state } : {}),
+    ...(a.postal_code ? { zip: a.postal_code } : {}),
+    country: a.country.toUpperCase(),
+  }
+}
 
 export function parseLineItems(raw: string | undefined): LineItem[] {
   if (!raw) return []

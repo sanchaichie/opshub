@@ -34,7 +34,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = useServiceClient(event)
-  const orgId = await existingOrgId(db, verified.orgId)
+  const claimedOrgId = verified.orgId ?? (await integration.webhook.resolveOrgId?.(db, verified)) ?? null
+  const orgId = await existingOrgId(db, claimedOrgId)
   const { event: stored, duplicate } = await recordInbound(db, provider, { ...verified, orgId }, headers)
 
   // A duplicate was already queued when it first arrived; don't run it twice.

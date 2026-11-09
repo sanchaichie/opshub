@@ -15,6 +15,8 @@ export default defineNuxtConfig({
     cronSecret: process.env.CRON_SECRET ?? '',
     stripeSecretKey: '',
     stripeWebhookSecret: '',
+    easypostApiKey: '',
+    easypostWebhookSecret: '',
     public: {
       siteUrl: 'http://localhost:3000',
     },

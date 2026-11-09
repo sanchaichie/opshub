@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { RuntimeConfig } from 'nuxt/schema'
 import { stripeRequest, toForm } from '../../server/integrations/stripe/api'
-import { orderTotal, randomOrder } from '../../server/integrations/stripe/catalog'
-import { parseLineItems } from '../../server/integrations/stripe/schemas'
+import { orderTotal, randomOrder, toStripeShipping } from '../../server/integrations/stripe/catalog'
+import { parseLineItems, toShippingAddress } from '../../server/integrations/stripe/schemas'
 import { signStripePayload, verifyStripeSignature } from '../../server/integrations/stripe/signature'
 import { verify } from '../../server/integrations/stripe/webhook'
 import { PermanentError } from '../../server/lib/errors'
@@ -134,6 +134,29 @@ describe('catalog', () => {
       expect(customer.email).toMatch(/@example\.com$/)
       expect(orderTotal(items)).toBeGreaterThan(0)
     }
+  })
+
+  it('gives every random order a complete US shipping address', () => {
+    for (let i = 0; i < 20; i++) {
+      const { shipping, customer } = randomOrder()
+      expect(shipping).toMatchObject({ name: customer.name, country: 'US' })
+      expect(shipping.street1 && shipping.city && shipping.zip).toBeTruthy()
+    }
+  })
+
+  it('maps Stripe shipping to an OpsHub address, and rejects incomplete ones', () => {
+    expect(toShippingAddress({ name: 'Ava Silva', address: { line1: '1 Market St', line2: null, city: 'San Francisco', state: 'CA', postal_code: '94105', country: 'US' } }))
+      .toEqual({ name: 'Ava Silva', street1: '1 Market St', city: 'San Francisco', state: 'CA', zip: '94105', country: 'US' })
+    expect(toShippingAddress({ name: 'No Street', address: { city: 'Austin', postal_code: '78701', country: 'US' } })).toBeNull()
+    // No postal code (e.g. Hong Kong) is still a valid address.
+    expect(toShippingAddress({ name: 'Li Wei', address: { line1: '1 Queen\'s Rd', city: 'Central', country: 'hk' } }))
+      .toEqual({ name: 'Li Wei', street1: '1 Queen\'s Rd', city: 'Central', country: 'HK' })
+    expect(toShippingAddress(null)).toBeNull()
+  })
+
+  it('round-trips through Stripe\'s shape', () => {
+    const { shipping } = randomOrder()
+    expect(toShippingAddress(toStripeShipping(shipping))).toEqual(shipping)
   })
 
   it('parses line items from metadata, and survives junk', () => {

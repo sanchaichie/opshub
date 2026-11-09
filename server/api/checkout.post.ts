@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { errorMessage } from '../lib/errors'
 import { stripeRequest } from '../integrations/stripe/api'
-import { PRODUCTS, randomOrder } from '../integrations/stripe/catalog'
+import { PRODUCTS, randomOrder, toStripeShipping } from '../integrations/stripe/catalog'
 
 const body = z.object({
   orgId: z.uuid(),
@@ -24,23 +24,27 @@ export default defineEventHandler(async (event) => {
   const idempotencyKey = `stripe.create_checkout:${randomUUID()}`
   const items = [{ name: product.name, quantity: 1, unit_amount: product.unit_amount }]
 
-  // In the public demo, every visitor can see every customer. Prefill a
-  // generated example.com address (Stripe then locks the email field), so
-  // trying Checkout never publishes a visitor's real email.
-  const demoCustomer = membership.isDemo ? randomOrder().customer : null
+  // In the public demo, every visitor can see every customer. So demo
+  // Checkout never asks for personal data: the email is prefilled with a
+  // generated example.com address (Stripe then locks the field) and the
+  // shipping address is set server-side instead of being collected.
+  const demo = membership.isDemo ? randomOrder() : null
 
   const params = {
     mode: 'payment',
     line_items: [{ quantity: 1, price_data: { currency: 'usd', unit_amount: product.unit_amount, product_data: { name: product.name } } }],
     success_url: `${config.public.siteUrl}/orders?checkout=success`,
     cancel_url: `${config.public.siteUrl}/orders?checkout=cancelled`,
-    ...(demoCustomer ? { customer_email: demoCustomer.email } : {}),
+    ...(demo
+      ? { customer_email: demo.customer.email }
+      : { shipping_address_collection: { allowed_countries: ['US'] } }),
     payment_intent_data: {
+      ...(demo ? { shipping: toStripeShipping(demo.shipping) } : {}),
       metadata: {
         org_id: orgId,
         source: 'checkout',
         line_items: JSON.stringify(items),
-        ...(demoCustomer ? { customer_email: demoCustomer.email, customer_name: demoCustomer.name } : {}),
+        ...(demo ? { customer_email: demo.customer.email, customer_name: demo.customer.name } : {}),
       },
     },
   }

@@ -3,7 +3,8 @@ useSeoMeta({ title: 'Connections · OpsHub' })
 
 const { data: live } = useFetch('/api/integrations', { default: () => [] })
 
-const cards = computed(() => Object.entries(providers).map(([id, info]) => {
+// OpsHub's own internal events aren't a connection.
+const cards = computed(() => Object.entries(providers).filter(([id]) => id !== 'opshub').map(([id, info]) => {
   const integration = live.value.find(i => i.id === id)
   return { id, info, integration }
 }))

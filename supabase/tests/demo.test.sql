@@ -1,5 +1,5 @@
 begin;
-select plan(22);
+select plan(28);
 
 -- The nightly reset is the only reset that ever runs in production. These
 -- tests build a real (non-demo) org with a row in EVERY org-scoped table and
@@ -75,6 +75,31 @@ select is((select count(*)::int from public.organizations where id = '00000000-0
 select is((select count(*)::int from auth.users where id = '00000000-0000-0000-0000-0000000000aa'), 1, 'real users are never removed');
 select is((select count(*)::int from public.orders where org_id = :demo), 5, 'the demo org is re-seeded with the 5-order baseline');
 select is((select count(*)::int from public.connections where org_id = :demo), 1, 'the demo org stays connected to its sandbox accounts');
+
+select is(
+  (select count(*)::int from public.orders where org_id = :demo and shipping_address is null),
+  0, 'every seeded demo order has a shipping address'
+);
+select throws_ok(
+  $$ update public.orders set shipping_address = '{"name":"No street"}' where org_id = (select id from real_org) $$,
+  '23514', null, 'an address missing required fields is rejected'
+);
+select throws_ok(
+  $$ update public.orders set shipping_address = '{"name":"A","street1":"","city":"X","country":"US"}' where org_id = (select id from real_org) $$,
+  '23514', null, 'an empty street is rejected'
+);
+select throws_ok(
+  $$ update public.orders set shipping_address = '{"name":"A","street1":"1 St","city":"X","country":"usa"}' where org_id = (select id from real_org) $$,
+  '23514', null, 'a country that is not an ISO 3166 alpha-2 code is rejected'
+);
+select lives_ok(
+  $$ update public.orders set shipping_address = '{"name":"Li Wei","street1":"1 Queen''s Rd","city":"Central","country":"HK"}' where org_id = (select id from real_org) $$,
+  'an address without a postal code is accepted'
+);
+select throws_ok(
+  $$ update public.orders set easypost_shipment_id = 'shp_same' where org_id = 'de300000-0000-4000-8000-000000000001' $$,
+  '23505', null, 'one EasyPost shipment can never belong to two orders'
+);
 
 -- ── Guards ──────────────────────────────────────────────────────────────────
 select throws_ok(

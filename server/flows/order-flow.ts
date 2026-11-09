@@ -13,7 +13,24 @@ import type { ActionContext } from '../integrations/types'
 
 export type Order = Tables<'orders'>
 
-export async function onOrderPaid(_ctx: ActionContext, _order: Order): Promise<void> {
-  // Phase 2: ctx.enqueue({ provider: 'easypost', action: 'create_shipment', idempotencyKey: `easypost.create_shipment:${order.id}`, ... })
-  // Phase 4: ctx.enqueue({ provider: 'hubspot', action: 'sync_deal', ... })
+export type OrderStatus = Order['status']
+
+/** Stripe confirmed payment: ship it. */
+export async function onOrderPaid(ctx: ActionContext, order: Order): Promise<void> {
+  if (order.shipping_address) {
+    await ctx.enqueue({
+      provider: 'easypost',
+      action: 'create_shipment',
+      idempotencyKey: `easypost.create_shipment:${order.id}`,
+      input: { orderId: order.id },
+      orderId: order.id,
+    })
+  }
+  // Phase 4: HubSpot contact + deal.
+}
+
+/** Any status change after payment (tracking updates, stuck detection). */
+export async function onOrderStatusChanged(_ctx: ActionContext, _order: Order, _from: OrderStatus): Promise<void> {
+  // Phase 3: Slack notification when an order ships, is delivered, fails or gets stuck.
+  // Phase 4: move the HubSpot deal stage.
 }

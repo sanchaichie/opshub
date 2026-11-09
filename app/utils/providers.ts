@@ -7,6 +7,7 @@ export interface ProviderInfo {
 }
 
 export const providers: Record<string, ProviderInfo> = {
+  opshub: { label: 'OpsHub', icon: 'i-lucide-workflow', phase: 2, description: 'Internal events, e.g. stuck-order detection.' },
   stripe: { label: 'Stripe', icon: 'i-simple-icons-stripe', phase: 1, description: 'Payments (test mode). Checkout and simulated orders arrive as signed webhooks.' },
   easypost: { label: 'EasyPost', icon: 'i-lucide-truck', phase: 2, description: 'Shipping labels and tracking webhooks (test mode).' },
   slack: { label: 'Slack', icon: 'i-simple-icons-slack', phase: 3, description: 'Notifications when orders ship, deliver, fail or get stuck.' },

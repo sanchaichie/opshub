@@ -44,15 +44,30 @@ export function runWorker(event: H3Event, batch = 10): Promise<RunSummary> {
   return runBatch(supabaseEventRepo(db), createDispatch(db, useRuntimeConfig(event)), { batch })
 }
 
+/** Fast path budget: enough for a chain like payment → label → tracking. */
+const FAST_PATH_BATCHES = 5
+const FAST_PATH_MS = 15_000
+
 /**
  * Runs the worker after the response is sent, so a webhook gets its 200
- * immediately and the event is usually processed within a second. If this is
- * cut short (e.g. the serverless function freezes), pg_cron's every-minute
- * sweep picks the event up: nothing depends on this fast path succeeding.
+ * immediately and the event is usually processed within a second.
+ *
+ * Processing one event often enqueues the next step (a payment queues a
+ * label purchase), so it keeps running batches while they find work, within
+ * a small budget. If this is cut short (e.g. the serverless function
+ * freezes), pg_cron's every-minute sweep picks everything up: nothing depends
+ * on the fast path succeeding.
  */
 export function processSoon(event: H3Event): void {
+  const run = async () => {
+    const started = Date.now()
+    for (let i = 0; i < FAST_PATH_BATCHES && Date.now() - started < FAST_PATH_MS; i++) {
+      const { claimed } = await runWorker(event)
+      if (claimed === 0) break
+    }
+  }
   event.waitUntil(
-    runWorker(event).catch((error: unknown) => {
+    run().catch((error: unknown) => {
       console.error('[worker] fast-path run failed; pg_cron will retry', error)
     }),
   )

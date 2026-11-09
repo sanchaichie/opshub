@@ -26,6 +26,21 @@ useSeoMeta({ title: () => `Order ${id.value.slice(0, 8)} · OpsHub` })
 const orgId = computed(() => order.value?.org_id ?? null)
 useRealtime('events', orgId, () => refresh())
 
+interface Address {
+  name: string
+  street1: string
+  street2?: string
+  city: string
+  state?: string
+  zip?: string
+  country: string
+}
+const address = computed(() => (order.value?.shipping_address ?? null) as Address | null)
+// Provider-supplied URL: only ever render it as a link if it's plain https.
+const labelUrl = computed(() => {
+  const url = order.value?.label_url
+  return url && /^https:\/\//i.test(url) ? url : null
+})
 const lineItems = computed(() => (order.value?.line_items ?? []) as { name: string, quantity: number, unit_amount: number }[])
 
 const timeline = computed<TimelineItem[]>(() => (data.value?.history ?? []).map(h => ({
@@ -105,15 +120,59 @@ const timeline = computed<TimelineItem[]>(() => (data.value?.history ?? []).map(
               <dd class="font-mono text-xs break-all">
                 {{ order.stripe_payment_intent_id ?? '—' }}
               </dd>
-              <template v-if="order.tracking_code">
+            </dl>
+          </UPageCard>
+
+          <UPageCard
+            title="Shipping"
+            variant="subtle"
+          >
+            <div
+              v-if="address"
+              class="grid sm:grid-cols-2 gap-4 text-sm"
+            >
+              <address class="not-italic leading-relaxed">
+                <span class="font-medium">{{ address.name }}</span><br>
+                {{ address.street1 }}<br>
+                <template v-if="address.street2">
+                  {{ address.street2 }}<br>
+                </template>
+                {{ address.city }}<template v-if="address.state">
+                  , {{ address.state }}
+                </template> {{ address.zip }}<br>
+                {{ address.country }}
+              </address>
+              <dl class="grid grid-cols-[6rem_1fr] gap-y-2 content-start">
+                <dt class="text-muted">
+                  Carrier
+                </dt>
+                <dd>{{ order.carrier ?? 'Not shipped yet' }}</dd>
                 <dt class="text-muted">
                   Tracking
                 </dt>
-                <dd class="font-mono text-xs">
-                  {{ order.carrier }} {{ order.tracking_code }}
+                <dd class="font-mono text-xs break-all">
+                  {{ order.tracking_code ?? '—' }}
                 </dd>
-              </template>
-            </dl>
+                <dt class="text-muted">
+                  Label
+                </dt>
+                <dd>
+                  <ULink
+                    v-if="labelUrl"
+                    :to="labelUrl"
+                    target="_blank"
+                    class="text-primary"
+                  >View label ↗</ULink>
+                  <span v-else>—</span>
+                </dd>
+              </dl>
+            </div>
+            <p
+              v-else
+              class="text-sm text-muted"
+            >
+              No shipping address on this order, so nothing to ship.
+            </p>
           </UPageCard>
 
           <UPageCard

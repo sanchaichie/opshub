@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const configured: Record<string, boolean> = {
     stripe: Boolean(config.stripeSecretKey && config.stripeWebhookSecret),
+    easypost: Boolean(config.easypostApiKey && config.easypostWebhookSecret),
   }
 
   return listIntegrations().map(integration => ({

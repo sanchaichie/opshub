@@ -1,3 +1,5 @@
+import { easypost } from './easypost'
+import { opshub } from './opshub'
 import { stripe } from './stripe'
 import type { Integration, ProviderId } from './types'
 
@@ -6,7 +8,9 @@ import type { Integration, ProviderId } from './types'
  * `Integration` in its own folder and add one line here.
  */
 const integrations: Partial<Record<ProviderId, Integration>> = {
+  opshub,
   stripe,
+  easypost,
 }
 
 export function getIntegration(id: string): Integration | undefined {

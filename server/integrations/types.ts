@@ -11,7 +11,7 @@ import type { Database, Tables } from '../../shared/types/database.types'
  * That split is why adding a provider is one folder plus a registry line.
  */
 
-export type ProviderId = 'stripe' | 'easypost' | 'slack' | 'hubspot' | 'google' | 'claude' | 'discord'
+export type ProviderId = 'opshub' | 'stripe' | 'easypost' | 'slack' | 'hubspot' | 'google' | 'claude' | 'discord'
 
 export type StoredEvent = Tables<'events'>
 export type ServiceClient = SupabaseClient<Database>
@@ -70,6 +70,11 @@ export interface Integration {
   webhook?: {
     /** Must check the signature over the raw body and throw on failure. */
     verify: (raw: RawWebhook, config: RuntimeConfig) => Promise<VerifiedWebhook> | VerifiedWebhook
+    /**
+     * For providers whose payloads don't carry our org id (e.g. EasyPost
+     * trackers): find it from our own data, e.g. the order a tracker belongs to.
+     */
+    resolveOrgId?: (db: ServiceClient, webhook: VerifiedWebhook) => Promise<string | null>
     /** Runs later, in the worker, never inside the webhook request. */
     handle: (ctx: ActionContext, payload: unknown) => Promise<ActionResult>
   }
