@@ -299,6 +299,14 @@ isOneToOne: false
               "beats": number,"last_seen": string,"source": string
             }[]
                            },
+"oauth_state_consume":
+{ Args: { "expected_provider": string,"state_hash": string }; Returns: {
+              "code_verifier": string,"expired": boolean,"org_id": string,"provider": string,"user_id": string
+            }[]
+                           },
+"oauth_state_create":
+{ Args: { "code_verifier"?: string,"member": string,"org": string,"provider": string,"state_hash": string }; Returns: undefined
+                           },
 "set_connection_secret":
 { Args: { "connection": string,"secret": string }; Returns: undefined
                            },

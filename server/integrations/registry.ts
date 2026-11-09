@@ -1,5 +1,6 @@
 import { easypost } from './easypost'
 import { opshub } from './opshub'
+import { slack } from './slack'
 import { stripe } from './stripe'
 import type { Integration, ProviderId } from './types'
 
@@ -11,6 +12,7 @@ const integrations: Partial<Record<ProviderId, Integration>> = {
   opshub,
   stripe,
   easypost,
+  slack,
 }
 
 export function getIntegration(id: string): Integration | undefined {

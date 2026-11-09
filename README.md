@@ -45,6 +45,14 @@ pnpm dev               # http://localhost:3000
 
 Checks: `pnpm lint`, `pnpm typecheck`, `pnpm exec vitest run`, `pnpm db:test`.
 
+## Setting up integrations
+
+Each integration needs test-mode keys in `.env` (see `.env.example`). The webhook URLs to register are shown on the app's **Connections** page.
+
+- **Stripe** (test mode): API key + a webhook endpoint for `payment_intent.succeeded`. Locally: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
+- **EasyPost** (test mode): test API key + a webhook with an HMAC secret, pointing at `/api/webhooks/easypost`.
+- **Slack:** create a Slack app. Under **OAuth & Permissions**, add the redirect URL `<site>/api/oauth/slack/callback` and the scope `incoming-webhook`, and put its client ID and secret in `.env`. Each organization then clicks **Connect Slack** and picks a channel. The public demo is connected once by the owner with `scripts/connect-demo-slack.sh`.
+
 ## Keeping the demo online
 
 Supabase's free tier pauses after 7 idle days. Two independent pingers (Vercel Cron daily, GitHub Actions every 2 days) record a real database heartbeat, visible at `/api/health`. This is a portfolio workaround: Supabase may change its rules, and the permanent fix is a paid plan. See [ADR 0006](docs/decisions/0006-supabase-keepalive.md).

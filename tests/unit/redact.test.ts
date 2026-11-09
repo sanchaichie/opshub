@@ -11,6 +11,7 @@ describe('redact', () => {
       Authorization: 'Bearer x',
       refreshToken: 'r',
       password: 'p',
+      webhook_url: 'https://hooks.slack.com/services/x',
     }
     expect(redact(input)).toEqual({
       id: 'pi_123',
@@ -20,6 +21,7 @@ describe('redact', () => {
       Authorization: REDACTED,
       refreshToken: REDACTED,
       password: REDACTED,
+      webhook_url: REDACTED,
     })
   })
 

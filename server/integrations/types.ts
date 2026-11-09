@@ -61,6 +61,30 @@ export interface ActionResult {
   status?: 'succeeded' | 'ignored'
 }
 
+/** What a provider's OAuth code exchange (or token refresh) yields. */
+export interface OAuthResult {
+  /** Stored in Vault only. Never logged, never returned to the browser. */
+  credentials: Record<string, unknown>
+  /** Non-secret, shown on the Connections page (e.g. "#orders in Acme"). */
+  accountLabel?: string
+  externalAccountId?: string
+  scopes?: string[]
+  expiresAt?: Date | null
+  /** Non-secret settings (e.g. Slack channel id). */
+  metadata?: Record<string, unknown>
+}
+
+export interface OAuthConfig {
+  /** Use PKCE (RFC 7636) when the provider supports it. */
+  pkce: boolean
+  authorizeUrl: (p: { config: RuntimeConfig, state: string, redirectUri: string, codeChallenge?: string }) => string
+  exchangeCode: (p: { config: RuntimeConfig, code: string, redirectUri: string, codeVerifier?: string }) => Promise<OAuthResult>
+  /** For providers with expiring access tokens (HubSpot, Google). */
+  refresh?: (p: { config: RuntimeConfig, credentials: Record<string, unknown> }) => Promise<OAuthResult>
+  /** Server has the app's client id/secret configured. */
+  isConfigured: (config: RuntimeConfig) => boolean
+}
+
 export interface Integration {
   id: ProviderId
   /** platform: our own API keys (env). connected: per-org OAuth/webhook credentials (Vault). See ADR 0003. */
@@ -78,6 +102,9 @@ export interface Integration {
     /** Runs later, in the worker, never inside the webhook request. */
     handle: (ctx: ActionContext, payload: unknown) => Promise<ActionResult>
   }
+
+  /** Connected integrations: how an org links its own account (ADR 0003). */
+  oauth?: OAuthConfig
 
   actions: Record<string, (ctx: ActionContext, input: Record<string, unknown>) => Promise<ActionResult>>
 }

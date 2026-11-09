@@ -14,11 +14,15 @@ export default defineEventHandler(async (event) => {
     easypost: Boolean(config.easypostApiKey && config.easypostWebhookSecret),
   }
 
-  return listIntegrations().map(integration => ({
-    id: integration.id,
-    kind: integration.kind,
-    displayName: integration.displayName,
-    configured: configured[integration.id] ?? false,
-    webhookUrl: integration.webhook ? `${siteUrl}/api/webhooks/${integration.id}` : null,
-  }))
+  return listIntegrations()
+    .filter(integration => integration.id !== 'opshub') // internal, not a connection
+    .map(integration => ({
+      id: integration.id,
+      kind: integration.kind,
+      displayName: integration.displayName,
+      // Connected integrations: whether the app's OAuth client is set up.
+      configured: integration.oauth ? integration.oauth.isConfigured(config) : (configured[integration.id] ?? false),
+      connectable: Boolean(integration.oauth),
+      webhookUrl: integration.webhook ? `${siteUrl}/api/webhooks/${integration.id}` : null,
+    }))
 })

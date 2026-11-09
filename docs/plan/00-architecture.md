@@ -213,7 +213,7 @@ Each phase ends deployed to Vercel with CI green.
 | 4 | Google Cloud | Project + OAuth consent screen + OAuth client **for Supabase login**; set its ID/secret in the Supabase dashboard | (in Supabase) | 1 |
 | 5 | Resend (or other SMTP) | Custom SMTP for Supabase auth emails (the built-in SMTP is heavily rate-limited) | (in Supabase) | 1 |
 | 6 | Stripe | Account (test mode) + Stripe CLI for local webhooks; webhook endpoint for prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | 1 |
-| 7 | — | App secrets you generate yourself | `CRON_SECRET`, `NUXT_OAUTH_STATE_SECRET`, `NUXT_PUBLIC_SITE_URL` | 1 |
+| 7 | — | App secrets you generate yourself | `CRON_SECRET`, `NUXT_PUBLIC_SITE_URL` | 1 |
 | 8 | EasyPost | Account → test API key + webhook (with HMAC secret) | `EASYPOST_API_KEY`, `EASYPOST_WEBHOOK_SECRET` | 2 |
 | 9 | Slack | Personal dev workspace + Slack app (OAuth, `chat:write`, redirect URL) | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET` | 3 |
 | 10 | HubSpot | Developer account + test portal + app (OAuth, CRM contacts/deals scopes) | `HUBSPOT_CLIENT_ID`, `HUBSPOT_CLIENT_SECRET` | 4 |
@@ -395,3 +395,7 @@ Changes made to this plan after approval. Each entry is dated and explains why.
   - **Stuck detection:** `private.mark_stuck_orders()` runs every 5 minutes and enqueues internal `opshub`/`order.stuck` events, handled in TypeScript.
   - **Worker fast path:** chains up to 5 batches (15s) after a webhook or user action.
   - **Personal data in Realtime:** `orders` (published to Realtime) now carries `shipping_address`. RLS limits it to org members, and demo orders only hold generated addresses.
+- **2026-11-10: Phase 3 OAuth and Slack**
+  - **Generic OAuth flow:** `/api/oauth/[provider]/start|callback` plus `DELETE /api/connections/[provider]`, driven by an `OAuthConfig` on each `Integration`.
+  - **OAuth state:** a random token stored hashed in `private.oauth_states` (single use, 10 minutes) and bound to the browser by an httpOnly cookie. No HMAC secret.
+  - **Slack:** uses the `incoming-webhook` scope and stores only the webhook URL in Vault. Notifications go out from `onOrderStatusChanged` for in_transit, delivered, exception and stuck.

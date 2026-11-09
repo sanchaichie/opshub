@@ -1,5 +1,7 @@
 import type { Tables } from '../../shared/types/database.types'
 import type { ActionContext } from '../integrations/types'
+import { NOTIFY_ON } from '../integrations/slack/message'
+import { isConnected } from '../lib/connections'
 
 /**
  * What happens next in an order's life. Integration handlers report domain
@@ -30,7 +32,16 @@ export async function onOrderPaid(ctx: ActionContext, order: Order): Promise<voi
 }
 
 /** Any status change after payment (tracking updates, stuck detection). */
-export async function onOrderStatusChanged(_ctx: ActionContext, _order: Order, _from: OrderStatus): Promise<void> {
-  // Phase 3: Slack notification when an order ships, is delivered, fails or gets stuck.
+export async function onOrderStatusChanged(ctx: ActionContext, order: Order, _from: OrderStatus): Promise<void> {
+  if (NOTIFY_ON.has(order.status) && await isConnected(ctx.db, order.org_id, 'slack')) {
+    await ctx.enqueue({
+      provider: 'slack',
+      action: 'notify_order',
+      // One message per transition: status_changed_at is unique to it.
+      idempotencyKey: `slack.notify_order:${order.id}:${order.status}:${order.status_changed_at}`,
+      input: { orderId: order.id },
+      orderId: order.id,
+    })
+  }
   // Phase 4: move the HubSpot deal stage.
 }

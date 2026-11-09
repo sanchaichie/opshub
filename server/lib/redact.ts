@@ -7,7 +7,8 @@
  * it is stored, so an integration can't forget it.
  */
 
-const SENSITIVE_KEY = /authorization|cookie|password|passwd|secret|token|api[-_]?key|signature|private[-_]?key|client[-_]?secret|session/i
+// webhook_url: a Slack incoming-webhook URL is itself a bearer credential.
+const SENSITIVE_KEY = /authorization|cookie|password|passwd|secret|token|api[-_]?key|signature|private[-_]?key|client[-_]?secret|session|webhook[-_]?url/i
 
 export const REDACTED = '[REDACTED]'
 

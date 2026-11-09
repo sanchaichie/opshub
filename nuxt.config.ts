@@ -17,6 +17,8 @@ export default defineNuxtConfig({
     stripeWebhookSecret: '',
     easypostApiKey: '',
     easypostWebhookSecret: '',
+    slackClientId: '',
+    slackClientSecret: '',
     public: {
       siteUrl: 'http://localhost:3000',
     },
