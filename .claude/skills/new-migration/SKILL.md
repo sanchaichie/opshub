@@ -42,6 +42,7 @@ Conventions:
 - **Security definer functions:**
   - `set search_path = ''` and schema-qualify everything.
   - `revoke all ... from public, anon, authenticated`, then grant only what's needed.
+- **Every function, in any schema:** add an explicit `revoke execute on function ... from public`. Postgres grants EXECUTE to PUBLIC globally, and a schema-level `alter default privileges ... revoke` **cannot** remove that. Found in P1-01, where pgTAP caught `anon` able to call a `private` helper.
 - **Realtime:** `alter publication supabase_realtime add table public.<things>;` only for tables the UI subscribes to.
 - **Destructive statements** (`drop`, `truncate`, a data-losing `alter`) need a comment explaining why they're safe.
 

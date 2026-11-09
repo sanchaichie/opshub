@@ -123,8 +123,8 @@ Logging is **not** each module's job. The dispatcher and `http.ts` wrap every we
 
 **Functions** (all `security definer`, `set search_path = ''`):
 - `private.is_org_member(org uuid)` and `private.has_org_role(org uuid, roles member_role[])` are used by every policy.
-- `private.claim_events(batch int)` serves the worker; `private.bump_usage(key, window, limit)` does atomic rate limiting.
-- `private.set_connection_secret(conn uuid, secret text)` and `private.get_connection_secret(conn uuid)` wrap `vault.create_secret`/`vault.decrypted_secrets`, executable by `service_role` only.
+- `public.claim_events(batch)` serves the worker (and dead-letters rows abandoned on their last attempt); `public.bump_usage(key, window, limit)` does atomic rate limiting; `public.transition_order(order, status, event)` changes status + history atomically. All are service-role only.
+- `public.set_connection_secret(conn, secret)` and `public.get_connection_secret(conn)` wrap `vault.create_secret`/`vault.decrypted_secrets`, executable by `service_role` only.
 - `private.reset_demo_data()` resets the demo org.
 - `private.mark_stuck_orders()` flags orders sitting in `label_created`/`in_transit` past a threshold and enqueues a Slack notification.
 
@@ -138,6 +138,7 @@ Logging is **not** each module's job. The dispatcher and `http.ts` wrap every we
 **pg_cron jobs** (the worker URL and `CRON_SECRET` live in Vault):
 - `process-events` runs every minute: `net.http_post` → `/api/jobs/run`.
 - `detect-stuck-orders` runs every 15 minutes: `mark_stuck_orders()`.
+- `purge-usage-counters` runs daily at 03:15 UTC: deletes rate-limit windows older than 2 days.
 - `reset-demo` runs nightly at 03:00 UTC: `reset_demo_data()` (wipes demo orders/events/ai_outputs and re-seeds a baseline).
 
 **Demo mode:**
@@ -212,7 +213,7 @@ Each phase ends deployed to Vercel with CI green.
 | 4 | Google Cloud | Project + OAuth consent screen + OAuth client **for Supabase login**; set its ID/secret in the Supabase dashboard | (in Supabase) | 1 |
 | 5 | Resend (or other SMTP) | Custom SMTP for Supabase auth emails (the built-in SMTP is heavily rate-limited) | (in Supabase) | 1 |
 | 6 | Stripe | Account (test mode) + Stripe CLI for local webhooks; webhook endpoint for prod | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | 1 |
-| 7 | — | App secrets you generate yourself | `CRON_SECRET`, `OAUTH_STATE_SECRET`, `DEMO_USER_EMAIL`, `DEMO_USER_PASSWORD`, `NUXT_PUBLIC_SITE_URL` | 1 |
+| 7 | — | App secrets you generate yourself | `CRON_SECRET`, `NUXT_OAUTH_STATE_SECRET`, `NUXT_PUBLIC_SITE_URL` | 1 |
 | 8 | EasyPost | Account → test API key + webhook (with HMAC secret) | `EASYPOST_API_KEY`, `EASYPOST_WEBHOOK_SECRET` | 2 |
 | 9 | Slack | Personal dev workspace + Slack app (OAuth, `chat:write`, redirect URL) | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET` | 3 |
 | 10 | HubSpot | Developer account + test portal + app (OAuth, CRM contacts/deals scopes) | `HUBSPOT_CLIENT_ID`, `HUBSPOT_CLIENT_SECRET` | 4 |
@@ -374,3 +375,16 @@ Changes made to this plan after approval. Each entry is dated and explains why.
   - **Local Supabase ports** moved to 563xx (API 56321, DB 56322, Studio 56323), because other local projects already use 543xx and 553xx.
   - **TypeScript is pinned to 5.9.** TS 7 isn't supported by typescript-eslint or vue-tsc yet.
   - **h3 is pinned to v1** as a direct dependency. `@nuxt/test-utils` pulled in h3 v2, which broke `@nuxtjs/supabase` cookie handling (`event.req.headers.get is not a function`). test-utils is deferred to Phase 7 (Playwright).
+- **2026-11-09: Phase 1 schema**
+  - **No browser writes at all.** §2 said owners/admins could update orgs and manage memberships directly. In practice *every* table is read-only for `authenticated`, and org or member changes go through server routes like everything else. This puts all authorization and demo-mode restrictions in one layer (`requireOrgRole`), and pgTAP proves the browser can't, for example, flip `is_demo`.
+  - **Internal tables in `private`:** `connection_secrets` and `usage_counters` live in the `private` schema (not exposed by the Data API) rather than `public`.
+  - **Service functions are in `public`** (`claim_events`, `bump_usage`, `transition_order`, `set/get_connection_secret`) so the server can call them over PostgREST. Execution is revoked from everyone but `service_role`.
+  - **`transition_order()`** updates an order's status and writes its history row atomically, so the timeline can't drift from the order.
+  - **Deleting a connection also deletes its Vault secret** (trigger), so revoked credentials don't linger encrypted at rest.
+  - **Lesson recorded in the `new-migration` skill:** Postgres grants EXECUTE to PUBLIC on every new function, and a schema-level `alter default privileges ... revoke` can't undo that. Every function revokes it explicitly. pgTAP caught this in P1-01.
+- **2026-11-09: pg_net and the worker secret (accepted risk).** The pg_cron worker call sends `CRON_SECRET` as a header, and pg_net keeps it in `net.http_request_queue` until the request is sent. Supabase grants that table to PUBLIC (granted by `supabase_admin`, so a migration can't revoke it). Browser roles can't reach it, because the Data API exposes only `public`/`graphql_public`, and a pgTAP test ensures nothing in `public` leads to `net`. The secret can only make the worker run early. Found by migration-reviewer while reviewing P1-04.
+- **2026-11-09: Phase 1 demo mode and tenant integrity**
+  - **Org-scoped foreign keys.** Every reference between org-scoped rows is a composite foreign key, `(org_id, x_id) → (org_id, id)`. A row can't point at another org's row, so no cascade or SET NULL crosses tenants. Found by migration-reviewer: with single-column keys, one bug elsewhere plus the nightly demo reset could have deleted or nulled a real org's rows.
+  - **`organizations.is_demo` is immutable** (trigger), so no bug can turn a real org into one the nightly reset wipes.
+  - **One throwaway account per demo visitor** instead of one shared demo account ([ADR 0007](../decisions/0007-per-visitor-demo-accounts.md)). Found by security-reviewer: with a shared account, any visitor's sign-out would log out everyone. There is no demo password env var anymore.
+  - **Simulate limits:** the shared daily budget applies to the demo org only. Real orgs get their own per-org limit.

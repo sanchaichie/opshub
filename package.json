@@ -17,6 +17,8 @@
     "db:types": "supabase gen types typescript --local > shared/types/database.types.ts"
   },
   "dependencies": {
+    "@iconify-json/lucide": "^1.2.152",
+    "@iconify-json/simple-icons": "^1.2.101",
     "@nuxt/ui": "^4.12.0",
     "@nuxtjs/supabase": "^2.1.0",
     "@supabase/supabase-js": "^2.119.0",

@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     // Don't leak database error details on a public endpoint.
     console.error('[health] database check failed', error)
     setResponseStatus(event, 503)
-    return { status: 'degraded', db: 'error' } as const
+    return { status: 'degraded', db: 'error', recorded: false, heartbeats: [] } as const
   }
 
   return {

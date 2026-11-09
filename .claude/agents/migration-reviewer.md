@@ -26,6 +26,11 @@ For every migration, check each item and cite file:line for each problem.
 2. **Security definer functions**: `set search_path = ''`, every object
    schema-qualified, `revoke all ... from public, anon, authenticated` then
    minimal `grant execute`. No dynamic SQL built from arguments.
+   **Every** function (including trigger functions and ones in `private`) needs
+   an explicit `revoke execute ... from public`: a schema-level
+   `alter default privileges ... revoke` does not remove PUBLIC's global
+   default EXECUTE. `supabase/tests/privileges.test.sql` enforces this for
+   every project function; make sure it still passes.
 3. **Private data**: secrets, tokens and internal tables live in `private` or
    Vault, never `public`. Nothing returns token values.
 4. **Destructive statements**: any `drop`, `truncate`, `delete`, `alter ... drop`

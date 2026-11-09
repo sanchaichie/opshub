@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-11-08
+- **Refined by:** [ADR 0007](0007-per-visitor-demo-accounts.md) (one throwaway account per visitor instead of one shared demo account)
 
 ## Context
 The public demo must convince clients that the integrations are real. Mocked providers are safer but prove nothing.

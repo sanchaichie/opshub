@@ -13,12 +13,19 @@ export default defineNuxtConfig({
     // Vercel Cron sends CRON_SECRET as a Bearer token; read it under that name
     // too so the same secret isn't configured twice.
     cronSecret: process.env.CRON_SECRET ?? '',
+    stripeSecretKey: '',
+    stripeWebhookSecret: '',
     public: {
       siteUrl: 'http://localhost:3000',
     },
   },
 
   compatibilityDate: '2025-07-15',
+
+  nitro: {
+    // The queue worker (/api/jobs/run) may run several batches per call.
+    vercel: { functions: { maxDuration: 60 } },
+  },
 
   typescript: {
     strict: true,
