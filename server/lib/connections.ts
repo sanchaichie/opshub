@@ -1,5 +1,5 @@
 import type { Json } from '../../shared/types/database.types'
-import type { ActionContext, OAuthResult, ProviderId, ServiceClient } from '../integrations/types'
+import type { ActionContext, Integration, OAuthResult, ProviderId, ServiceClient } from '../integrations/types'
 import { PermanentError } from './errors'
 
 /**
@@ -12,6 +12,8 @@ export interface Connection<C> {
   id: string
   credentials: C
   metadata: Record<string, unknown>
+  /** When the access token expires; null for tokens that don't (e.g. Slack webhooks). */
+  expiresAt: Date | null
 }
 
 /** Saves (or re-saves) a connection and its credentials. Used by the OAuth callback and refresh. */
@@ -51,7 +53,7 @@ export async function getConnection<C>(ctx: ActionContext, provider: ProviderId)
 
   const { data: connection, error } = await ctx.db
     .from('connections')
-    .select('id, status, metadata')
+    .select('id, status, metadata, token_expires_at')
     .eq('org_id', ctx.event.org_id)
     .eq('provider', provider)
     .maybeSingle()
@@ -62,7 +64,82 @@ export async function getConnection<C>(ctx: ActionContext, provider: ProviderId)
   if (secretError) throw secretError
   if (!secret) throw new PermanentError(`${provider} credentials are missing; reconnect it`)
 
-  return { id: connection.id, credentials: JSON.parse(secret) as C, metadata: (connection.metadata ?? {}) as Record<string, unknown> }
+  return {
+    id: connection.id,
+    credentials: JSON.parse(secret) as C,
+    metadata: (connection.metadata ?? {}) as Record<string, unknown>,
+    expiresAt: connection.token_expires_at ? new Date(connection.token_expires_at) : null,
+  }
+}
+
+/** Refresh this long before expiry, so a token can't expire mid-request. */
+export const REFRESH_WINDOW_MS = 2 * 60_000
+
+/**
+ * Like getConnection, but refreshes an access token that is expired or about
+ * to expire.
+ *
+ * Concurrency: two workers refreshing at once is harmless for HubSpot, whose
+ * refresh tokens stay valid when used (and refreshConnection only saves if
+ * nothing changed underneath it). A provider that ROTATES refresh tokens on
+ * use would need a lock around the refresh instead; check before reusing this.
+ */
+export async function getFreshConnection<C>(ctx: ActionContext, integration: Integration, now = Date.now()): Promise<Connection<C>> {
+  const connection = await getConnection<C>(ctx, integration.id)
+  if (!integration.oauth?.refresh || !connection.expiresAt) return connection
+  if (connection.expiresAt.getTime() - now > REFRESH_WINDOW_MS) return connection
+  return refreshConnection(ctx, integration, connection)
+}
+
+export async function refreshConnection<C>(ctx: ActionContext, integration: Integration, connection: Connection<C>): Promise<Connection<C>> {
+  let result: OAuthResult
+  try {
+    result = await integration.oauth!.refresh!({ config: ctx.config, credentials: connection.credentials as Record<string, unknown> })
+  }
+  catch (error) {
+    // The provider refused the refresh token: access was revoked.
+    if (error instanceof PermanentError) {
+      await markConnectionError(ctx, connection, `${integration.displayName} access was revoked; reconnect it`)
+    }
+    throw error
+  }
+
+  // Save only if the tokens are still the ones we refreshed. If an admin
+  // reconnected (perhaps to a different account) or another worker already
+  // refreshed while we waited, keep theirs: overwriting would send this org's
+  // syncs to the wrong account. Status and settings are left untouched.
+  let update = ctx.db
+    .from('connections')
+    .update({ token_expires_at: result.expiresAt?.toISOString() ?? null })
+    .eq('id', connection.id)
+  update = connection.expiresAt
+    ? update.eq('token_expires_at', connection.expiresAt.toISOString())
+    : update.is('token_expires_at', null)
+  const { data: saved, error } = await update.select('id')
+  if (error) throw error
+  if (!saved?.length) return getConnection<C>(ctx, integration.id)
+
+  const { error: secretError } = await ctx.db.rpc('set_connection_secret', { connection: connection.id, secret: JSON.stringify(result.credentials) })
+  if (secretError) throw secretError
+
+  return { ...connection, credentials: result.credentials as C, expiresAt: result.expiresAt ?? null }
+}
+
+/**
+ * Runs an API call with fresh credentials. If the provider still answers 401
+ * (token revoked early, clock skew), refreshes once and retries once.
+ */
+export async function withAuthRetry<C, T>(ctx: ActionContext, integration: Integration, call: (credentials: C) => Promise<T>): Promise<T> {
+  const connection = await getFreshConnection<C>(ctx, integration)
+  try {
+    return await call(connection.credentials)
+  }
+  catch (error) {
+    const status = (error as { details?: { httpStatus?: number } }).details?.httpStatus
+    if (status !== 401 || !integration.oauth?.refresh) throw error
+    const refreshed = await refreshConnection(ctx, integration, connection)
+    return call(refreshed.credentials)
+  }
 }
 
 /** Whether an org has a usable connection, without loading credentials. */

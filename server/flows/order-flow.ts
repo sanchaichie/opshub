@@ -28,7 +28,7 @@ export async function onOrderPaid(ctx: ActionContext, order: Order): Promise<voi
       orderId: order.id,
     })
   }
-  // Phase 4: HubSpot contact + deal.
+  await syncCrm(ctx, order)
 }
 
 /** Any status change after payment (tracking updates, stuck detection). */
@@ -43,5 +43,17 @@ export async function onOrderStatusChanged(ctx: ActionContext, order: Order, _fr
       orderId: order.id,
     })
   }
-  // Phase 4: move the HubSpot deal stage.
+  await syncCrm(ctx, order)
+}
+
+/** Keeps the HubSpot contact + deal current, one sync per order state. */
+async function syncCrm(ctx: ActionContext, order: Order): Promise<void> {
+  if (!await isConnected(ctx.db, order.org_id, 'hubspot')) return
+  await ctx.enqueue({
+    provider: 'hubspot',
+    action: 'sync_deal',
+    idempotencyKey: `hubspot.sync_deal:${order.id}:${order.status}:${order.status_changed_at}`,
+    input: { orderId: order.id },
+    orderId: order.id,
+  })
 }

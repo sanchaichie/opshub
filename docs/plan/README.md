@@ -2,7 +2,7 @@
 
 How this project was planned and is being built, with [Claude Code](https://claude.com/claude-code) as a pair programmer under human direction. Every phase and task has its own file. Each task records what was built, how it was verified, and **how Claude was used**: which skills and review agents ran, what they caught, and which guardrails fired.
 
-**Now:** Phase 3 done locally; Phase 4 (HubSpot) next. Phase 0 is done except [P0-07 Cloud setup](tasks/phase-0/07-cloud-setup.md), deferred until the accounts exist.
+**Now:** Phase 4 done locally; Phase 5 (Google) next. Phase 0 is done except [P0-07 Cloud setup](tasks/phase-0/07-cloud-setup.md), deferred until the accounts exist.
 
 ## Phases
 
@@ -12,7 +12,7 @@ How this project was planned and is being built, with [Claude Code](https://clau
 | 1 | [Auth, schema, Stripe, event log](phases/phase-1-auth-stripe-event-log.md) | 🟠 Done locally, live Stripe run pending keys | 2026-11-09 | 2026-11-09 |
 | 2 | [EasyPost shipping](phases/phase-2-easypost.md) | 🟠 Done locally, live EasyPost run pending keys | 2026-11-09 | 2026-11-09 |
 | 3 | [Slack + OAuth plumbing](phases/phase-3-slack.md) | 🟠 Done locally, live Slack run pending app keys | 2026-11-10 | 2026-11-10 |
-| 4 | [HubSpot CRM](phases/phase-4-hubspot.md) | ⚪ Planned | | |
+| 4 | [HubSpot CRM](phases/phase-4-hubspot.md) | 🟠 Done locally, live HubSpot run pending a test portal | 2026-11-10 | 2026-11-11 |
 | 5 | [Gmail + Google Calendar](phases/phase-5-google.md) | ⚪ Planned | | |
 | 6 | [Claude AI assist](phases/phase-6-claude.md) | ⚪ Planned | | |
 | 7 | [Polish](phases/phase-7-polish.md) | ⚪ Planned | | |

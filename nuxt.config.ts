@@ -19,6 +19,8 @@ export default defineNuxtConfig({
     easypostWebhookSecret: '',
     slackClientId: '',
     slackClientSecret: '',
+    hubspotClientId: '',
+    hubspotClientSecret: '',
     public: {
       siteUrl: 'http://localhost:3000',
     },

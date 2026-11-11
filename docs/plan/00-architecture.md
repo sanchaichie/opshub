@@ -399,3 +399,7 @@ Changes made to this plan after approval. Each entry is dated and explains why.
   - **Generic OAuth flow:** `/api/oauth/[provider]/start|callback` plus `DELETE /api/connections/[provider]`, driven by an `OAuthConfig` on each `Integration`.
   - **OAuth state:** a random token stored hashed in `private.oauth_states` (single use, 10 minutes) and bound to the browser by an httpOnly cookie. No HMAC secret.
   - **Slack:** uses the `incoming-webhook` scope and stores only the webhook URL in Vault. Notifications go out from `onOrderStatusChanged` for in_transit, delivered, exception and stuck.
+- **2026-11-11: Phase 4 HubSpot**
+  - **Token refresh** lives in `server/lib/connections.ts`: `getFreshConnection` and `withAuthRetry`, with compare-and-set saves.
+  - **HubSpot deal stages** record the sale; fulfilment goes in a custom `opshub_status` property.
+  - **Idempotent sync:** a unique `opshub_order_id` deal property makes every sync an idempotent upsert.

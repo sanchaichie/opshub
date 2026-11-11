@@ -16,7 +16,15 @@ const { data, refresh } = useAsyncData(
       supabase.from('events').select('id, provider, type, direction, status, attempts, error, created_at, updated_at').eq('order_id', id.value).order('created_at', { ascending: false }),
     ])
     for (const r of [order, history, events]) if (r.error) throw r.error
-    return { order: order.data, history: history.data ?? [], events: events.data ?? [] }
+
+    // For the "View deal in HubSpot" link: the org's portal id (RLS: members read connections).
+    let hubspotPortal: unknown = null
+    if (order.data?.hubspot_deal_id) {
+      const { data: connection } = await supabase.from('connections').select('metadata').eq('org_id', order.data.org_id).eq('provider', 'hubspot').maybeSingle()
+      hubspotPortal = (connection?.metadata as { portal_id?: unknown } | null)?.portal_id ?? null
+    }
+
+    return { order: order.data, history: history.data ?? [], events: events.data ?? [], hubspotPortal }
   },
 )
 
@@ -42,6 +50,15 @@ const labelUrl = computed(() => {
   return url && /^https:\/\//i.test(url) ? url : null
 })
 const lineItems = computed(() => (order.value?.line_items ?? []) as { name: string, quantity: number, unit_amount: number }[])
+
+// Built only from numeric ids, never from provider-supplied text.
+const hubspotDealUrl = computed(() => {
+  const portal = String(data.value?.hubspotPortal ?? '')
+  const deal = order.value?.hubspot_deal_id ?? ''
+  return /^\d+$/.test(portal) && /^\d+$/.test(deal)
+    ? `https://app.hubspot.com/contacts/${portal}/record/0-3/${deal}`
+    : null
+})
 
 const timeline = computed<TimelineItem[]>(() => (data.value?.history ?? []).map(h => ({
   date: formatDateTime(h.created_at),
@@ -120,6 +137,23 @@ const timeline = computed<TimelineItem[]>(() => (data.value?.history ?? []).map(
               <dd class="font-mono text-xs break-all">
                 {{ order.stripe_payment_intent_id ?? '—' }}
               </dd>
+              <template v-if="order.hubspot_deal_id">
+                <dt class="text-muted">
+                  HubSpot deal
+                </dt>
+                <dd>
+                  <ULink
+                    v-if="hubspotDealUrl"
+                    :to="hubspotDealUrl"
+                    target="_blank"
+                    class="text-primary"
+                  >View deal in HubSpot ↗</ULink>
+                  <span
+                    v-else
+                    class="font-mono text-xs"
+                  >{{ order.hubspot_deal_id }}</span>
+                </dd>
+              </template>
             </dl>
           </UPageCard>
 

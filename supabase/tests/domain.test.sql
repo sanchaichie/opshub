@@ -189,8 +189,11 @@ select is(
   '{"token":"two"}', 'secrets round-trip through Vault, and rotation replaces the value'
 );
 
+-- Only this test's connection: other data may exist in a dev database.
 create temp table vault_ref as
-select vault_secret_id from private.connection_secrets;
+select cs.vault_secret_id from private.connection_secrets cs
+join public.connections c on c.id = cs.connection_id
+where c.org_id = (select org_a from ids);
 delete from public.connections where org_id = (select org_a from ids);
 select is(
   (select count(*)::int from vault.secrets where id in (select vault_secret_id from vault_ref)),
