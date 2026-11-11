@@ -403,3 +403,8 @@ Changes made to this plan after approval. Each entry is dated and explains why.
   - **Token refresh** lives in `server/lib/connections.ts`: `getFreshConnection` and `withAuthRetry`, with compare-and-set saves.
   - **HubSpot deal stages** record the sale; fulfilment goes in a custom `opshub_status` property.
   - **Idempotent sync:** a unique `opshub_order_id` deal property makes every sync an idempotent upsert.
+- **2026-11-11: Phase 5 Google**
+  - **Connection:** Google is a connected integration with PKCE, and its refresh token is retained across refreshes.
+  - **Follow-up email:** sent once per order on `delivered`, at-least-once by nature of Gmail's API.
+  - **Book a call:** Calendar events use deterministic ids, so booking is retry-safe.
+  - **Demo:** recipients are always the first `NUXT_DEMO_EMAIL_ALLOWLIST` address, and actions have hourly and daily caps.

@@ -21,6 +21,10 @@ export default defineNuxtConfig({
     slackClientSecret: '',
     hubspotClientId: '',
     hubspotClientSecret: '',
+    googleClientId: '',
+    googleClientSecret: '',
+    // Comma-separated. In the demo, email and invites only ever go here.
+    demoEmailAllowlist: '',
     public: {
       siteUrl: 'http://localhost:3000',
     },

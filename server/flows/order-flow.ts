@@ -44,6 +44,17 @@ export async function onOrderStatusChanged(ctx: ActionContext, order: Order, _fr
     })
   }
   await syncCrm(ctx, order)
+
+  if (order.status === 'delivered' && await isConnected(ctx.db, order.org_id, 'google')) {
+    await ctx.enqueue({
+      provider: 'google',
+      action: 'send_follow_up',
+      // Once per order, ever: a re-delivered tracker update can't re-send it.
+      idempotencyKey: `google.send_follow_up:${order.id}`,
+      input: { orderId: order.id },
+      orderId: order.id,
+    })
+  }
 }
 
 /** Keeps the HubSpot contact + deal current, one sync per order state. */

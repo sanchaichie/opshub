@@ -13,7 +13,7 @@ const { data, refresh } = useAsyncData(
     const [order, history, events] = await Promise.all([
       supabase.from('orders').select('*, customers(name, email)').eq('id', id.value).maybeSingle(),
       supabase.from('order_status_history').select('id, from_status, to_status, event_id, created_at').eq('order_id', id.value).order('created_at'),
-      supabase.from('events').select('id, provider, type, direction, status, attempts, error, created_at, updated_at').eq('order_id', id.value).order('created_at', { ascending: false }),
+      supabase.from('events').select('id, provider, type, direction, status, attempts, error, response, created_at, updated_at').eq('order_id', id.value).order('created_at', { ascending: false }),
     ])
     for (const r of [order, history, events]) if (r.error) throw r.error
 
@@ -24,7 +24,14 @@ const { data, refresh } = useAsyncData(
       hubspotPortal = (connection?.metadata as { portal_id?: unknown } | null)?.portal_id ?? null
     }
 
-    return { order: order.data, history: history.data ?? [], events: events.data ?? [], hubspotPortal }
+    // Whether "Book a call" is available (RLS: members read connections).
+    let googleConnected = false
+    if (order.data) {
+      const { data: g } = await supabase.from('connections').select('status').eq('org_id', order.data.org_id).eq('provider', 'google').maybeSingle()
+      googleConnected = g?.status === 'connected'
+    }
+
+    return { order: order.data, history: history.data ?? [], events: events.data ?? [], hubspotPortal, googleConnected }
   },
 )
 
@@ -50,6 +57,38 @@ const labelUrl = computed(() => {
   return url && /^https:\/\//i.test(url) ? url : null
 })
 const lineItems = computed(() => (order.value?.line_items ?? []) as { name: string, quantity: number, unit_amount: number }[])
+
+// ── Customer follow-up (Google) ──
+const googleEvents = computed(() => (data.value?.events ?? []).filter(e => e.provider === 'google'))
+const followUp = computed(() => googleEvents.value.find(e => e.type === 'send_follow_up') ?? null)
+const calls = computed(() => googleEvents.value
+  .filter(e => e.type === 'book_call')
+  .map((e) => {
+    const r = (e.response ?? {}) as { starts_at?: string, meet_link?: unknown }
+    // Only real Meet links become links.
+    const meet = typeof r.meet_link === 'string' && /^https:\/\/meet\.google\.com\/[a-z-]+$/.test(r.meet_link) ? r.meet_link : null
+    return { id: e.id, status: e.status, startsAt: r.starts_at ?? null, meet, error: e.error }
+  }))
+
+const toast = useToast()
+const callAt = ref('')
+const booking = ref(false)
+async function bookCall() {
+  if (!callAt.value) return
+  booking.value = true
+  try {
+    await $fetch(`/api/orders/${id.value}/book-call`, { method: 'POST', body: { startsAt: new Date(callAt.value).toISOString() } })
+    toast.add({ title: 'Booking the call', description: 'The Meet link appears here in a moment.', icon: 'i-lucide-calendar-plus' })
+    callAt.value = ''
+    await refresh()
+  }
+  catch (error) {
+    toast.add({ title: 'Could not book the call', description: (error as { statusMessage?: string }).statusMessage, color: 'error' })
+  }
+  finally {
+    booking.value = false
+  }
+}
 
 // Built only from numeric ids, never from provider-supplied text.
 const hubspotDealUrl = computed(() => {
@@ -223,6 +262,86 @@ const timeline = computed<TimelineItem[]>(() => (data.value?.history ?? []).map(
                 <span>{{ formatMoney(item.unit_amount * item.quantity, order.currency) }}</span>
               </li>
             </ul>
+          </UPageCard>
+
+          <UPageCard
+            title="Customer follow-up"
+            description="Email and calls through the organization's connected Google account."
+            variant="subtle"
+          >
+            <div class="space-y-4 text-sm">
+              <div class="flex items-center gap-2">
+                <UIcon
+                  name="i-lucide-mail"
+                  class="text-muted"
+                />
+                <span v-if="followUp">
+                  Follow-up email: <StatusBadge
+                    :status="followUp.status"
+                    kind="event"
+                  />
+                </span>
+                <span
+                  v-else
+                  class="text-muted"
+                >Follow-up email is sent automatically when the order is delivered{{ data?.googleConnected ? '' : ' (connect Google first)' }}.</span>
+              </div>
+
+              <ul
+                v-if="calls.length"
+                class="divide-y divide-default"
+              >
+                <li
+                  v-for="call in calls"
+                  :key="call.id"
+                  class="flex flex-wrap items-center gap-2 py-2"
+                >
+                  <UIcon
+                    name="i-lucide-video"
+                    class="text-muted"
+                  />
+                  <span>{{ call.startsAt ? formatDateTime(call.startsAt) : 'Booking…' }}</span>
+                  <StatusBadge
+                    :status="call.status"
+                    kind="event"
+                  />
+                  <ULink
+                    v-if="call.meet"
+                    :to="call.meet"
+                    target="_blank"
+                    class="text-primary"
+                  >Join Meet ↗</ULink>
+                  <span
+                    v-if="call.error"
+                    class="text-error text-xs basis-full"
+                  >{{ call.error }}</span>
+                </li>
+              </ul>
+
+              <form
+                v-if="data?.googleConnected"
+                class="flex flex-wrap items-end gap-2"
+                @submit.prevent="bookCall"
+              >
+                <UFormField
+                  label="Book a 30-minute call"
+                  name="callAt"
+                >
+                  <UInput
+                    v-model="callAt"
+                    type="datetime-local"
+                    required
+                  />
+                </UFormField>
+                <UButton
+                  type="submit"
+                  label="Book call"
+                  icon="i-lucide-calendar-plus"
+                  :loading="booking"
+                  :disabled="!callAt"
+                />
+              </form>
+            </div>
           </UPageCard>
 
           <UPageCard

@@ -1,4 +1,5 @@
 import { easypost } from './easypost'
+import { google } from './google'
 import { hubspot } from './hubspot'
 import { opshub } from './opshub'
 import { slack } from './slack'
@@ -15,6 +16,7 @@ const integrations: Partial<Record<ProviderId, Integration>> = {
   easypost,
   slack,
   hubspot,
+  google,
 }
 
 export function getIntegration(id: string): Integration | undefined {
