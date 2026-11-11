@@ -17,6 +17,7 @@
     "db:types": "supabase gen types typescript --local > shared/types/database.types.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@iconify-json/lucide": "^1.2.152",
     "@iconify-json/simple-icons": "^1.2.101",
     "@nuxt/ui": "^4.12.0",

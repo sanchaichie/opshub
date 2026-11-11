@@ -13,6 +13,8 @@ export async function recordSyncCall(
   db: ServiceClient,
   call: {
     orgId: string
+    /** Shows the call in that order's "Integration events". Must belong to orgId. */
+    orderId?: string | null
     provider: string
     action: string
     idempotencyKey: string
@@ -33,6 +35,7 @@ export async function recordSyncCall(
       provider: call.provider,
       type: call.action,
       idempotency_key: call.idempotencyKey,
+      order_id: call.orderId ?? null,
       status: outcome.ok ? 'succeeded' : 'dead',
       request: asJson({ input: call.input }),
       response,

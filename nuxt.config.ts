@@ -25,6 +25,11 @@ export default defineNuxtConfig({
     googleClientSecret: '',
     // Comma-separated. In the demo, email and invites only ever go here.
     demoEmailAllowlist: '',
+    anthropicApiKey: '',
+    // Default per Anthropic's guidance; set claude-haiku-5-5 to cut cost ~40x.
+    anthropicModel: 'claude-opus-5-5',
+    // Global daily token budget across all AI calls (0 = no cap).
+    aiDailyTokenCap: 200000,
     public: {
       siteUrl: 'http://localhost:3000',
     },

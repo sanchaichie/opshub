@@ -251,7 +251,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "bump_usage":
+            "add_usage":
+{ Args: { "amount": number,"counter_key": string,"window_size": string }; Returns: number
+                           },
+"bump_usage":
 { Args: { "counter_key": string,"max_count": number,"window_size": string }; Returns: {
               "allowed": boolean,"current_count": number,"resets_at": string
             }[]
@@ -306,6 +309,9 @@ isOneToOne: false
                            },
 "oauth_state_create":
 { Args: { "code_verifier"?: string,"member": string,"org": string,"provider": string,"state_hash": string }; Returns: undefined
+                           },
+"read_usage":
+{ Args: { "counter_key": string,"window_size": string }; Returns: number
                            },
 "set_connection_secret":
 { Args: { "connection": string,"secret": string }; Returns: undefined

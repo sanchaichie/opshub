@@ -31,7 +31,15 @@ const { data, refresh } = useAsyncData(
       googleConnected = g?.status === 'connected'
     }
 
-    return { order: order.data, history: history.data ?? [], events: events.data ?? [], hubspotPortal, googleConnected }
+    // AI assist results for this order (RLS: members read their org's outputs).
+    const { data: aiOutputs } = await supabase
+      .from('ai_outputs')
+      .select('id, kind, model, content, input_tokens, output_tokens, created_at')
+      .eq('order_id', id.value)
+      .order('created_at', { ascending: false })
+      .limit(6)
+
+    return { order: order.data, history: history.data ?? [], events: events.data ?? [], hubspotPortal, googleConnected, aiOutputs: aiOutputs ?? [] }
   },
 )
 
@@ -88,6 +96,36 @@ async function bookCall() {
   finally {
     booking.value = false
   }
+}
+
+// ── AI assist (Claude) ──
+const { isDemo } = useOrg()
+const latestSummary = computed(() => data.value?.aiOutputs.find(o => o.kind === 'summary') ?? null)
+const drafts = computed(() => (data.value?.aiOutputs ?? []).filter(o => o.kind === 'reply_draft').slice(0, 3))
+const customerMessage = ref('')
+const aiBusy = ref<'summary' | 'reply_draft' | null>(null)
+
+async function runAi(kind: 'summary' | 'reply_draft') {
+  aiBusy.value = kind
+  try {
+    await $fetch(`/api/orders/${id.value}/ai`, {
+      method: 'POST',
+      body: kind === 'summary' ? { kind } : { kind, customerMessage: customerMessage.value },
+    })
+    if (kind === 'reply_draft') customerMessage.value = ''
+    await refresh()
+  }
+  catch (error) {
+    toast.add({ title: kind === 'summary' ? 'Could not summarize' : 'Could not draft a reply', description: (error as { statusMessage?: string }).statusMessage, color: 'error' })
+  }
+  finally {
+    aiBusy.value = null
+  }
+}
+
+async function copyText(text: string) {
+  await navigator.clipboard.writeText(text)
+  toast.add({ title: 'Copied', icon: 'i-lucide-copy' })
 }
 
 // Built only from numeric ids, never from provider-supplied text.
@@ -262,6 +300,90 @@ const timeline = computed<TimelineItem[]>(() => (data.value?.history ?? []).map(
                 <span>{{ formatMoney(item.unit_amount * item.quantity, order.currency) }}</span>
               </li>
             </ul>
+          </UPageCard>
+
+          <UPageCard
+            title="AI assist"
+            description="Claude summarizes the order and drafts replies for you to review. Nothing is sent automatically."
+            variant="subtle"
+          >
+            <div class="space-y-5 text-sm">
+              <div>
+                <div class="flex items-center justify-between gap-2 mb-2">
+                  <span class="font-medium">Summary</span>
+                  <UButton
+                    :label="latestSummary ? 'Refresh summary' : 'Summarize order'"
+                    icon="i-lucide-sparkles"
+                    size="xs"
+                    variant="soft"
+                    :loading="aiBusy === 'summary'"
+                    @click="runAi('summary')"
+                  />
+                </div>
+                <template v-if="latestSummary">
+                  <p class="whitespace-pre-line">
+                    {{ latestSummary.content }}
+                  </p>
+                  <p class="text-xs text-dimmed mt-1">
+                    {{ latestSummary.model }} · {{ latestSummary.input_tokens + latestSummary.output_tokens }} tokens · {{ formatRelative(latestSummary.created_at) }}
+                  </p>
+                </template>
+                <p
+                  v-else
+                  class="text-muted"
+                >
+                  No summary yet.
+                </p>
+              </div>
+
+              <form
+                class="space-y-2"
+                @submit.prevent="runAi('reply_draft')"
+              >
+                <UFormField
+                  label="Draft a reply to a customer message"
+                  name="customerMessage"
+                  :help="isDemo ? 'This demo is public: don\'t paste real personal information.' : 'The message is sent to Claude but not stored.'"
+                >
+                  <UTextarea
+                    v-model="customerMessage"
+                    :rows="3"
+                    :maxlength="4000"
+                    placeholder="Paste the customer's email…"
+                    class="w-full"
+                  />
+                </UFormField>
+                <UButton
+                  type="submit"
+                  label="Draft reply"
+                  icon="i-lucide-pen-line"
+                  size="xs"
+                  :loading="aiBusy === 'reply_draft'"
+                  :disabled="!customerMessage.trim()"
+                />
+              </form>
+
+              <div
+                v-for="draft in drafts"
+                :key="draft.id"
+                class="rounded-md border border-default p-3"
+              >
+                <p class="whitespace-pre-line">
+                  {{ draft.content }}
+                </p>
+                <div class="flex items-center justify-between mt-2 text-xs text-dimmed">
+                  <span>AI draft: check links and claims before sending · {{ draft.model }} · {{ draft.input_tokens + draft.output_tokens }} tokens · {{ formatRelative(draft.created_at) }}</span>
+                  <UButton
+                    label="Copy"
+                    icon="i-lucide-copy"
+                    size="xs"
+                    variant="ghost"
+                    color="neutral"
+                    @click="copyText(draft.content)"
+                  />
+                </div>
+              </div>
+            </div>
           </UPageCard>
 
           <UPageCard

@@ -408,3 +408,8 @@ Changes made to this plan after approval. Each entry is dated and explains why.
   - **Follow-up email:** sent once per order on `delivered`, at-least-once by nature of Gmail's API.
   - **Book a call:** Calendar events use deterministic ids, so booking is retry-safe.
   - **Demo:** recipients are always the first `NUXT_DEMO_EMAIL_ALLOWLIST` address, and actions have hourly and daily caps.
+- **2026-11-11: Phase 6 Claude**
+  - **AI assist calls:** synchronous, through the official SDK with retries off, and logged against the order.
+  - **Budgets:** token budgets are per org, plus one for the demo, reserved before each call.
+  - **Demo privacy:** demo visitors only see their own AI outputs (RLS).
+  - **Details:** see [ADR 0008](../decisions/0008-ai-assist-data-and-cost.md).
