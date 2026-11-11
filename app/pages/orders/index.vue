@@ -30,13 +30,14 @@ useRealtime('orders', orgId, () => refresh())
 
 type Row = (typeof orders.value)[number]
 
+// Most useful first, so on a phone the essentials fit before the table scrolls.
 const columns: TableColumn<Row>[] = [
-  { accessorKey: 'created_at', header: 'Placed' },
   { id: 'customer', header: 'Customer' },
-  { id: 'items', header: 'Items' },
-  { accessorKey: 'amount_cents', header: 'Total' },
-  { accessorKey: 'source', header: 'Source' },
   { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'amount_cents', header: 'Total' },
+  { accessorKey: 'created_at', header: 'Placed' },
+  { id: 'items', header: 'Items' },
+  { accessorKey: 'source', header: 'Source' },
 ]
 
 const itemCount = (row: Row) =>
@@ -76,13 +77,16 @@ async function checkout() {
         </template>
         <template #right>
           <UButton
-            label="Test Checkout"
             icon="i-simple-icons-stripe"
             color="neutral"
             variant="subtle"
+            aria-label="Test Checkout"
             :loading="checkoutLoading"
             @click="checkout"
-          />
+          >
+            <!-- Icon-only on phones, so the page title keeps its space. -->
+            <span class="hidden sm:inline">Test Checkout</span>
+          </UButton>
           <OrdersSimulateButton />
         </template>
       </UDashboardNavbar>

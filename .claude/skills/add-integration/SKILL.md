@@ -9,7 +9,7 @@ Every provider is one folder implementing the shared `Integration` interface (`s
 
 ## 1. Decide its kind
 - **platform**: the app's own API key from env (Stripe, EasyPost, Claude). Inbound webhooks carry `org_id` in metadata.
-- **connected**: each org connects its own account through OAuth (Slack, HubSpot, Google), or with a pasted webhook URL (Discord). Tokens go to Vault through `server/utils/secrets.ts`.
+- **connected**: each org connects its own account, either through OAuth (`oauth`: Slack, HubSpot, Google) or by pasting a secret (`manualConnect`: Discord). Credentials go to Vault through `saveConnection` in `server/lib/connections.ts`. Use `withAuthRetry` for providers with expiring tokens.
 
 ## 2. Scaffold
 ```
@@ -28,10 +28,10 @@ Rules:
 
 ## 3. Wire it up
 1. Register the module in `server/integrations/registry.ts`.
-2. Add a webhook route `server/api/webhooks/<id>.post.ts`. It's thin: `readRawBody` → `verify` → `recordInbound` → 200 → `waitUntil(process)`.
-3. Hook into `server/flows/order-flow.ts` for the domain events it reacts to.
+2. **No route needed for webhooks:** the generic `server/api/webhooks/[provider].post.ts` serves every provider (verify → store → 200 → process). If the payload carries no org id, implement `webhook.resolveOrgId`, matching only on ids that are unique in the database.
+3. Hook into `server/flows/order-flow.ts` for the domain events it reacts to. A chat integration only needs an entry in `CHAT_TARGETS` plus a `notify_order` action.
 4. Add env vars to `.env.example` (empty values, `NUXT_` prefix) and to `runtimeConfig` in `nuxt.config.ts`.
-5. Add a card for it on the Connections page.
+5. Add an entry to `app/utils/providers.ts` (label, icon, description). The Connections page renders it, with OAuth or paste-to-connect controls as appropriate.
 6. Update `docs/plan/00-architecture.md` and the current task file.
 
 ## 4. Test and review

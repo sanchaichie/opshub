@@ -21,9 +21,11 @@ export default defineEventHandler(async (event) => {
       id: integration.id,
       kind: integration.kind,
       displayName: integration.displayName,
-      // Connected integrations: whether the app's OAuth client is set up.
-      configured: integration.oauth ? integration.oauth.isConfigured(config) : (configured[integration.id] ?? false),
-      connectable: Boolean(integration.oauth),
+      // Connected integrations: whether the app's OAuth client is set up
+      // (paste-to-connect ones need no server keys at all).
+      configured: integration.oauth ? integration.oauth.isConfigured(config) : integration.manualConnect ? true : (configured[integration.id] ?? false),
+      connectable: Boolean(integration.oauth || integration.manualConnect),
+      manual: integration.manualConnect ? { label: integration.manualConnect.label, placeholder: integration.manualConnect.placeholder } : null,
       webhookUrl: integration.webhook ? `${siteUrl}/api/webhooks/${integration.id}` : null,
     }))
 })

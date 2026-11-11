@@ -17,6 +17,9 @@ export type Order = Tables<'orders'>
 
 export type OrderStatus = Order['status']
 
+/** Chat integrations that get order notifications; each implements `notify_order`. */
+const CHAT_TARGETS = ['slack', 'discord'] as const
+
 /** Stripe confirmed payment: ship it. */
 export async function onOrderPaid(ctx: ActionContext, order: Order): Promise<void> {
   if (order.shipping_address) {
@@ -33,15 +36,18 @@ export async function onOrderPaid(ctx: ActionContext, order: Order): Promise<voi
 
 /** Any status change after payment (tracking updates, stuck detection). */
 export async function onOrderStatusChanged(ctx: ActionContext, order: Order, _from: OrderStatus): Promise<void> {
-  if (NOTIFY_ON.has(order.status) && await isConnected(ctx.db, order.org_id, 'slack')) {
-    await ctx.enqueue({
-      provider: 'slack',
-      action: 'notify_order',
-      // One message per transition: status_changed_at is unique to it.
-      idempotencyKey: `slack.notify_order:${order.id}:${order.status}:${order.status_changed_at}`,
-      input: { orderId: order.id },
-      orderId: order.id,
-    })
+  if (NOTIFY_ON.has(order.status)) {
+    for (const provider of CHAT_TARGETS) {
+      if (!await isConnected(ctx.db, order.org_id, provider)) continue
+      await ctx.enqueue({
+        provider,
+        action: 'notify_order',
+        // One message per transition: status_changed_at is unique to it.
+        idempotencyKey: `${provider}.notify_order:${order.id}:${order.status}:${order.status_changed_at}`,
+        input: { orderId: order.id },
+        orderId: order.id,
+      })
+    }
   }
   await syncCrm(ctx, order)
 

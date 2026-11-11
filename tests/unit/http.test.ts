@@ -47,6 +47,12 @@ describe('httpRequest', () => {
     await expect(httpRequest({ url: 'https://api.example.test/x', timeoutMs: 5 }, fetchImpl)).rejects.toThrow(/Timed out after 5ms/)
   })
 
+  it('refuses redirects by default (they could lead to any host)', async () => {
+    const fetchImpl = respond(200, {})
+    await httpRequest({ url: 'https://api.example.test/x' }, fetchImpl)
+    expect(fetchImpl.mock.calls[0]![1]).toMatchObject({ redirect: 'error' })
+  })
+
   it('never puts the full URL (which may hold tokens) in error messages', async () => {
     const error = await httpRequest({ url: 'https://api.example.test/hook?token=abc' }, respond(500, {})).catch((e: Error) => e)
     expect((error as Error).message).toContain('api.example.test')

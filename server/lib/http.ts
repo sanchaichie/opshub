@@ -20,6 +20,12 @@ export interface HttpRequest {
   timeoutMs?: number
   /** Sent as `Idempotency-Key` for providers that support it (Stripe, EasyPost). */
   idempotencyKey?: string
+  /**
+   * Redirects are refused by default. APIs don't redirect in normal operation,
+   * and following one would let a response send us to any host, quietly
+   * undoing the URL allowlists some integrations rely on (e.g. Discord).
+   */
+  redirect?: RequestRedirect
 }
 
 export interface HttpResponse<T = unknown> {
@@ -33,7 +39,7 @@ const DEFAULT_TIMEOUT_MS = 10_000
 const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504])
 
 export async function httpRequest<T = unknown>(request: HttpRequest, fetchImpl: typeof fetch = fetch): Promise<HttpResponse<T>> {
-  const { url, method = 'GET', headers = {}, body, timeoutMs = DEFAULT_TIMEOUT_MS, idempotencyKey } = request
+  const { url, method = 'GET', headers = {}, body, timeoutMs = DEFAULT_TIMEOUT_MS, idempotencyKey, redirect = 'error' } = request
 
   const finalHeaders: Record<string, string> = { accept: 'application/json', ...headers }
   if (idempotencyKey) finalHeaders['idempotency-key'] = idempotencyKey
@@ -50,7 +56,7 @@ export async function httpRequest<T = unknown>(request: HttpRequest, fetchImpl: 
   const started = Date.now()
   let res: Response
   try {
-    res = await fetchImpl(url, { method, headers: finalHeaders, body: payload, signal: AbortSignal.timeout(timeoutMs) })
+    res = await fetchImpl(url, { method, headers: finalHeaders, body: payload, signal: AbortSignal.timeout(timeoutMs), redirect })
   }
   catch (error) {
     const timedOut = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')

@@ -112,7 +112,7 @@ const meta = computed(() => {
           icon="i-lucide-triangle-alert"
         />
 
-        <div class="grid lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <UPageCard
             title="Details"
             variant="subtle"
@@ -143,7 +143,7 @@ const meta = computed(() => {
             </dl>
           </UPageCard>
 
-          <div class="lg:col-span-2 space-y-4">
+          <div class="lg:col-span-2 space-y-4 min-w-0">
             <JsonView
               :value="event.request"
               :label="event.direction === 'inbound' ? 'Webhook received (redacted)' : 'Request (redacted)'"

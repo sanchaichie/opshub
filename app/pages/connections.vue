@@ -62,6 +62,25 @@ onMounted(() => {
   if (connected || error) router.replace({ query: {} })
 })
 
+const manualValues = reactive<Record<string, string>>({})
+const manualBusy = ref<string | null>(null)
+async function connectManual(provider: string) {
+  if (!orgId.value || !manualValues[provider]) return
+  manualBusy.value = provider
+  try {
+    await $fetch(`/api/connections/${provider}`, { method: 'POST', body: { orgId: orgId.value, value: manualValues[provider] } })
+    manualValues[provider] = ''
+    toast.add({ title: `${providerInfo(provider).label} connected`, color: 'success', icon: 'i-lucide-plug' })
+    await refresh()
+  }
+  catch (error) {
+    toast.add({ title: `Couldn't connect ${providerInfo(provider).label}`, description: (error as { statusMessage?: string }).statusMessage, color: 'error' })
+  }
+  finally {
+    manualBusy.value = null
+  }
+}
+
 function connect(provider: string) {
   if (!orgId.value) return
   // A full navigation: the server redirects on to the provider.
@@ -174,7 +193,7 @@ async function disconnect(provider: string) {
                   class="basis-full flex gap-2 mt-1"
                 >
                   <UButton
-                    v-if="connection.status !== 'connected'"
+                    v-if="connection.status !== 'connected' && !integration.manual"
                     label="Reconnect"
                     size="xs"
                     @click="connect(id)"
@@ -196,8 +215,30 @@ async function disconnect(provider: string) {
                   color="neutral"
                   variant="subtle"
                 />
+                <form
+                  v-if="canManage && integration.manual"
+                  class="basis-full flex gap-2 mt-1"
+                  @submit.prevent="connectManual(id)"
+                >
+                  <UInput
+                    v-model="manualValues[id]"
+                    type="password"
+                    :placeholder="integration.manual.placeholder"
+                    :aria-label="integration.manual.label"
+                    size="xs"
+                    class="flex-1"
+                  />
+                  <UButton
+                    type="submit"
+                    label="Connect"
+                    size="xs"
+                    icon="i-lucide-plug"
+                    :loading="manualBusy === id"
+                    :disabled="!manualValues[id]"
+                  />
+                </form>
                 <UButton
-                  v-if="canManage && integration.configured"
+                  v-else-if="canManage && integration.configured"
                   :label="`Connect ${info.label}`"
                   size="xs"
                   icon="i-lucide-plug"

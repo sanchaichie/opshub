@@ -11,6 +11,8 @@ commits: []
 # P0-07 — Cloud setup: GitHub, Supabase, Vercel
 
 > **Deferred (2026-11-09):** the owner chose to build the app locally first and create the Supabase and Vercel accounts later. The GitHub parts are done.
+>
+> **Now (2026-11-11):** every step, every env var, and every integration's pending live check is in the [launch checklist](../../../launch-checklist.md).
 
 ## Goal
 The repo is on GitHub (`sanchaichie/opshub`), linked to a Supabase cloud project and a Vercel project, with every secret in place, so CI, migration deploys and the keep-alive all run for real.

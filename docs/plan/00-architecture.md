@@ -413,3 +413,9 @@ Changes made to this plan after approval. Each entry is dated and explains why.
   - **Budgets:** token budgets are per org, plus one for the demo, reserved before each call.
   - **Demo privacy:** demo visitors only see their own AI outputs (RLS).
   - **Details:** see [ADR 0008](../decisions/0008-ai-assist-data-and-cost.md).
+- **2026-11-11: Phase 7 polish**
+  - **Discord:** a second chat target, connected through a new `manualConnect` (paste-a-secret) path on the `Integration` interface.
+  - **Outbound calls** refuse redirects by default.
+  - **Card layout:** a `UPageCard` theme override in `app/app.config.ts` stops cards overflowing on phones.
+  - **Visual QA:** a Playwright suite covers every page.
+  - **Launch:** the steps are in `docs/launch-checklist.md`.

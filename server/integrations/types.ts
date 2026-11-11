@@ -105,6 +105,16 @@ export interface Integration {
 
   /** Connected integrations: how an org links its own account (ADR 0003). */
   oauth?: OAuthConfig
+  /**
+   * Connected integrations without OAuth: the org pastes one secret value
+   * (e.g. a Discord webhook URL). `connect` validates it and returns what to
+   * store, exactly like an OAuth code exchange.
+   */
+  manualConnect?: {
+    label: string
+    placeholder: string
+    connect: (value: string) => Promise<OAuthResult>
+  }
 
   actions: Record<string, (ctx: ActionContext, input: Record<string, unknown>) => Promise<ActionResult>>
 }

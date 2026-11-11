@@ -59,6 +59,11 @@ interface Address {
   country: string
 }
 const address = computed(() => (order.value?.shipping_address ?? null) as Address | null)
+// "Chicago, IL 60606", without stray spaces when state or zip is missing.
+const cityLine = computed(() => {
+  const a = address.value
+  return a ? [a.city, [a.state, a.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') : ''
+})
 // Provider-supplied URL: only ever render it as a link if it's plain https.
 const labelUrl = computed(() => {
   const url = order.value?.label_url
@@ -180,9 +185,9 @@ const timeline = computed<TimelineItem[]>(() => (data.value?.history ?? []).map(
 
       <div
         v-else-if="order"
-        class="grid lg:grid-cols-3 gap-4"
+        class="grid grid-cols-1 lg:grid-cols-3 gap-4"
       >
-        <div class="lg:col-span-2 space-y-4">
+        <div class="lg:col-span-2 space-y-4 min-w-0">
           <UPageCard
             title="Summary"
             variant="subtle"
@@ -248,9 +253,7 @@ const timeline = computed<TimelineItem[]>(() => (data.value?.history ?? []).map(
                 <template v-if="address.street2">
                   {{ address.street2 }}<br>
                 </template>
-                {{ address.city }}<template v-if="address.state">
-                  , {{ address.state }}
-                </template> {{ address.zip }}<br>
+                {{ cityLine }}<br>
                 {{ address.country }}
               </address>
               <dl class="grid grid-cols-[6rem_1fr] gap-y-2 content-start">
