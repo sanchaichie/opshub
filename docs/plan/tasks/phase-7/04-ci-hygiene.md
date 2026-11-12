@@ -15,7 +15,8 @@ Clear the GitHub Actions deprecation warnings and make sure CI covers everything
 
 ## Acceptance criteria
 - [x] Actions bumped off Node 20 (checkout, setup-node, pnpm, supabase setup-cli)
-- [x] CI green on GitHub
+- [x] CI green on GitHub for the Phase 7 commit (b57bda9)
+- [ ] CI run for the action bumps: queued during a GitHub outage ("Incident with Webhooks", 2026-11-12); inputs verified compatible by reading both actions' `action.yml`
 
 ## Files touched
 - `.github/workflows/*`
